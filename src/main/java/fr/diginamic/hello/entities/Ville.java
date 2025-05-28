@@ -1,8 +1,16 @@
-package fr.diginamic.hello;
+package fr.diginamic.hello.entities;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public class Ville {
+    @Min(value = 1, groups = ModeModification.class)
     private int id;
+    @NotNull
+    @Size(min = 2, groups = {ModeCreation.class, ModeCreation.class})
     private String nom;
+    @Min(value = 1, groups = {ModeCreation.class, ModeCreation.class})
     private int nbHabitants;
 
     public Ville(int id, String nom, int nbHabitants) {

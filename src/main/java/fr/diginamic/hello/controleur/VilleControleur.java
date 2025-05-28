@@ -1,14 +1,21 @@
 package fr.diginamic.hello.controleur;
 
-import fr.diginamic.hello.Ville;
+import fr.diginamic.hello.entities.ModeCreation;
+import fr.diginamic.hello.entities.Ville;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.Errors;
+import org.springframework.validation.Validator;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("villes")
@@ -24,6 +31,11 @@ public class VilleControleur {
         villes.add(new Ville(5,"Mouais", 356));
     }
 
+    @GetMapping
+    public List<Ville> getVilles() {
+        return villes;
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Ville> getVilleById(@PathVariable int id) {
         Optional<Ville> ville = villes.stream().filter(v -> v.getId() == id).findFirst();
@@ -32,8 +44,12 @@ public class VilleControleur {
     }
 
     @PostMapping
-    public ResponseEntity<String> ajouterVille(@RequestBody Ville nouvelleVille) {
+    public ResponseEntity<String> ajouterVille(@Validated(ModeCreation.class) @Valid @RequestBody Ville nouvelleVille, BindingResult result) {
         boolean existe = villes.stream().anyMatch(v -> v.getNom().equalsIgnoreCase(nouvelleVille.getNom()));
+        if (result.hasErrors()) {
+            String message = result.getFieldErrors().stream().map(e -> e.getDefaultMessage()).collect(Collectors.joining(",\n"));
+            return ResponseEntity.badRequest().body(message);
+        }
         if (existe) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("La ville est déjà existante");
         }
@@ -42,16 +58,29 @@ public class VilleControleur {
         return ResponseEntity.ok("Ville insérée avec succès");
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<String> modifierVille(@PathVariable int id, @RequestBody Ville majVille) {
-        for (Ville ville : villes) {
-            if (ville.getId() == id) {
-                ville.setNom(majVille.getNom());
-                ville.setNbHabitants(majVille.getNbHabitants());
-                return ResponseEntity.ok("Ville modifiée avec succès");
-            }
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ville introuvable");
+    @Autowired
+    private Validator validator;
+
+    @PutMapping
+    public ResponseEntity<String> modifierVille(@Validated(ModeCreation.class) @RequestBody Ville majVille, BindingResult result) {
+       if (result.hasErrors()) {
+           String message = result.getFieldErrors().stream().map(e -> e.getField() + " " + e.getDefaultMessage()).collect(Collectors.joining(", "));
+           return ResponseEntity.badRequest().body("Erreurs de validation : " + message);
+       }
+
+       if (result.hasErrors()) {
+           String message = result.getFieldErrors().stream().map(error -> error.getField() + " : " + error.getDefaultMessage()).collect(Collectors.joining(",\n"));
+           return ResponseEntity.badRequest().body("Erreurs de validation : \n" + message);
+       }
+
+       for (Ville ville : villes) {
+           if (ville.getId() == majVille.getId()) {
+               ville.setNom(majVille.getNom());
+               ville.setNbHabitants(majVille.getNbHabitants());
+               return ResponseEntity.ok("Ville modifiée avec succès");
+           }
+       }
+       return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ville introuvable");
     }
 
     @DeleteMapping("/{id}")
