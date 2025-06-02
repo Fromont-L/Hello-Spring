@@ -1,97 +1,66 @@
 package fr.diginamic.hello.controleur;
 
-import fr.diginamic.hello.entities.ModeCreation;
 import fr.diginamic.hello.entities.Ville;
-import jakarta.validation.Valid;
+import fr.diginamic.hello.repositories.VilleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.Errors;
-import org.springframework.validation.Validator;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("villes")
+@RequestMapping("/villes")
 public class VilleControleur {
 
-    private List<Ville> villes = new ArrayList<>();
-
-    public VilleControleur() {
-        villes.add(new Ville(1,"Thézan-des-Corbières", 560));
-        villes.add(new Ville(2,"Villerouge la Crémade", 140));
-        villes.add(new Ville(3,"Montquc", 1241));
-        villes.add(new Ville(4,"Anus", 130));
-        villes.add(new Ville(5,"Mouais", 356));
-    }
-
-    @GetMapping
-    public List<Ville> getVilles() {
-        return villes;
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Ville> getVilleById(@PathVariable int id) {
-        Optional<Ville> ville = villes.stream().filter(v -> v.getId() == id).findFirst();
-
-        return ville.map(ResponseEntity::ok).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
-    }
-
-    @PostMapping
-    public ResponseEntity<String> ajouterVille(@Validated(ModeCreation.class) @Valid @RequestBody Ville nouvelleVille, BindingResult result) {
-        boolean existe = villes.stream().anyMatch(v -> v.getNom().equalsIgnoreCase(nouvelleVille.getNom()));
-        if (result.hasErrors()) {
-            String message = result.getFieldErrors().stream().map(e -> e.getDefaultMessage()).collect(Collectors.joining(",\n"));
-            return ResponseEntity.badRequest().body(message);
-        }
-        if (existe) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("La ville est déjà existante");
-        }
-
-        villes.add(nouvelleVille);
-        return ResponseEntity.ok("Ville insérée avec succès");
-    }
-
     @Autowired
-    private Validator validator;
+    private VilleRepository villeRepository;
 
-    @PutMapping
-    public ResponseEntity<String> modifierVille(@Validated(ModeCreation.class) @RequestBody Ville majVille, BindingResult result) {
-       if (result.hasErrors()) {
-           String message = result.getFieldErrors().stream().map(e -> e.getField() + " " + e.getDefaultMessage()).collect(Collectors.joining(", "));
-           return ResponseEntity.badRequest().body("Erreurs de validation : " + message);
-       }
-
-       if (result.hasErrors()) {
-           String message = result.getFieldErrors().stream().map(error -> error.getField() + " : " + error.getDefaultMessage()).collect(Collectors.joining(",\n"));
-           return ResponseEntity.badRequest().body("Erreurs de validation : \n" + message);
-       }
-
-       for (Ville ville : villes) {
-           if (ville.getId() == majVille.getId()) {
-               ville.setNom(majVille.getNom());
-               ville.setNbHabitants(majVille.getNbHabitants());
-               return ResponseEntity.ok("Ville modifiée avec succès");
-           }
-       }
-       return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ville introuvable");
+    // url : http://localhost:8080/villes
+    @GetMapping
+    public List<Ville> getAll(@RequestParam(defaultValue = "0") int page,
+                              @RequestParam(defaultValue = "1001") int size) {
+        return villeRepository.findAll(PageRequest.of(page, size)).getContent();
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> supprimerVille(@PathVariable int id) {
-        boolean supprimed = villes.removeIf(ville -> ville.getId() == id);
-        if (supprimed) {
-            return ResponseEntity.ok("Ville supprimée avec succès");
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ville introuvable");
-        }
-
+    // url : http://localhost:8080/villes/nom/Na
+    @GetMapping("/nom/{prefix}")
+    public List<Ville> getVillesByNomPrefix(@PathVariable String prefix) {
+        return villeRepository.findByNomStartingWith(prefix);
     }
 
+    // url : http://localhost:8080/villes/population/sup/1000000
+    @GetMapping("/population/sup/{min}")
+    public List<Ville> getVillesByPopulationMin(@PathVariable int min) {
+        return villeRepository.findByPopulationGreaterThanOrderByPopulationDesc(min);
+    }
+
+    // url : http://localhost:8080/villes/population/between?min=1000&max=5000
+    @GetMapping("/population/between")
+    public List<Ville> getVillesByPopulationBetween(@RequestParam int min,
+                                                    @RequestParam int max) {
+        return villeRepository.findByPopulationBetweenOrderByPopulationDesc(min, max);
+    }
+
+    // url : http://localhost:8080/villes/departement/11/population/sup/1234
+    @GetMapping("/departement/{depId}/population/sup/{min}")
+    public List<Ville> getVillesByDepartementAndMinPop(@PathVariable Integer depId,
+                                                       @PathVariable int min) {
+        return villeRepository.findByDepartementIdAndPopulationGreaterThanOrderByPopulationDesc(depId, min);
+    }
+
+    // url : http://localhost:8080/villes/departement/11/population/between?min=11111&max=66666
+    @GetMapping("/departement/{depId}/population/between")
+    public List<Ville> getVillesByDepartementAndPopBetween(@PathVariable Integer depId,
+                                                           @RequestParam int min,
+                                                           @RequestParam int max) {
+        return villeRepository.findByDepartementIdAndPopulationBetweenOrderByPopulationDesc(depId, min, max);
+    }
+
+    // url : http://localhost:8080/villes/departement/1/top
+    @GetMapping("/departement/{depId}/top")
+    public List<Ville> getTopNVillesByDepartement(@PathVariable Integer depId,
+                                                  @RequestParam(defaultValue = "5") int n) {
+        return villeRepository.findTopNVillesByDepartementId(depId, PageRequest.of(0, n));
+    }
 }
