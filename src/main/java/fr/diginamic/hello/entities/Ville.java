@@ -10,13 +10,12 @@ import jakarta.validation.constraints.Size;
 @Table(name = "ville")
 public class Ville {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @NotNull
-    @Size(min = 2, groups = {ModeModification.class, ModeCreation.class})
     private String nom;
 
-    @Min(value = 1, groups = {ModeModification.class, ModeCreation.class})
     private Integer population;
 
     @ManyToOne

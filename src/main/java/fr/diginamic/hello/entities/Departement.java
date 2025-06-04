@@ -15,27 +15,24 @@ public class Departement {
 
     private String nom;
 
+    @Column(name = "code")
     private String code;
 
     @OneToMany(mappedBy = "departement", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Ville> villes;
 
-    // Constructeur vide
     public Departement() {}
 
-    // Constructeur
     public Departement(String nom) {
         this.nom = nom;
     }
 
-    // Getters & Setters
-
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
@@ -47,19 +44,19 @@ public class Departement {
         this.nom = nom;
     }
 
-    public List<Ville> getVilles() {
-        return villes;
-    }
-
-    public void setVilles(List<Ville> villes) {
-        this.villes = villes;
-    }
-
     public String getCode() {
         return code;
     }
 
     public void setCode(String codeDep) {
         this.code = codeDep;
+    }
+
+    public List<Ville> getVilles() {
+        return villes;
+    }
+
+    public void setVilles(List<Ville> villes) {
+        this.villes = villes;
     }
 }

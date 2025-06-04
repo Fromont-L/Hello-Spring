@@ -35,4 +35,9 @@ public class DepartementControleur {
     public void delete(@PathVariable int id) {
         departementService.delete(id);
     }
+
+    @GetMapping("/code/{code}")
+    public Departement getByCode(@PathVariable String code) {
+        return departementService.getByCode(code);
+    }
 }

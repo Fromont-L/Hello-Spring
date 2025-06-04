@@ -1,12 +1,15 @@
 package fr.diginamic.hello.repositories;
 
+import fr.diginamic.hello.entities.Departement;
 import fr.diginamic.hello.entities.Ville;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Repository
 public interface VilleRepository extends JpaRepository<Ville, Integer> {
 
     // Recherche villes dont le nom commence par une chaîne donnée
@@ -27,4 +30,11 @@ public interface VilleRepository extends JpaRepository<Ville, Integer> {
     // Recherche top N villes les plus peuplées d’un département
     @Query("SELECT v FROM Ville v WHERE v.departement.id = :depId ORDER BY v.population DESC")
     List<Ville> findTopNVillesByDepartementId(Integer depId, Pageable pageable);
+
+    @Query("SELECT MAX(v.id) FROM Ville v")
+    Integer findMaxId();
+
+    List<Ville> findByPopulationGreaterThan(int minPopulation);
+
+    List<Ville> findByDepartement(Departement departement);
 }
